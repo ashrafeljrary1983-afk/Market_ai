@@ -16,7 +16,7 @@ app.get('/', (req, res) => {
 app.get('/api/analyze', async (req, res) => {
   try {
     const symbol = req.query.symbol ? req.query.symbol.toUpperCase() : 'BTC/USD';
-    const interval = req.query.interval || '1h';
+    const interval = req.query.interval || '15m'; // جعل الفريم الافتراضي أسرع (15 دقيقة) لزيادة الحساسية
 
     const priceUrl = `https://api.twelvedata.com/price?symbol=${symbol}&apikey=${API_KEY}`;
     const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
@@ -35,23 +35,25 @@ app.get('/api/analyze', async (req, res) => {
     let takeProfit = 0;
     let stopLoss = 0;
 
-    if (latestRsi >= 70) {
-      signal = "SELL / OVERBOUGHT";
-      summary = `مؤشر RSI مرتفع (${latestRsi.toFixed(2)}) منطقة تشبع شرائي، احتمال هبوط تصحيحي.`;
-      takeProfit = (latestPrice * 0.99).toFixed(2);
-      stopLoss = (latestPrice * 1.005).toFixed(2);
-    } else if (latestRsi <= 30) {
-      signal = "BUY / OVERSOLD";
-      summary = `مؤشر RSI منخفض (${latestRsi.toFixed(2)}) منطقة تشبع بيعي، احتمال ارتداد صعودياً.`;
-      takeProfit = (latestPrice * 1.01).toFixed(2);
-      stopLoss = (latestPrice * 0.995).toFixed(2);
-    } else {
+    // زيادة الحساسية: تقليل مستويات التشبع لتلتقط إشارات أسرع (أعلى من 60 للبيع، وأقل من 40 للشراء)
+    if (latestRsi >= 60) {
+      signal = "SELL / OVERBOUGHT (Sensitive)";
+      summary = `مؤشر RSI وصل إلى (${latestRsi.toFixed(2)}) - إشارة بيع مبكرة وسريعة.`;
+      takeProfit = (latestPrice * 0.992).toFixed(2);
+      stopLoss = (latestPrice * 1.003).toFixed(2);
+    } else if (latestRsi <= 40) {
+      signal = "BUY / OVERSOLD (Sensitive)";
+      summary = `مؤشر RSI هبط إلى (${latestRsi.toFixed(2)}) - إشارة شراء مبكرة وسريعة.`;
       takeProfit = (latestPrice * 1.008).toFixed(2);
-      stopLoss = (latestPrice * 0.992).toFixed(2);
+      stopLoss = (latestPrice * 0.997).toFixed(2);
+    } else {
+      takeProfit = (latestPrice * 1.005).toFixed(2);
+      stopLoss = (latestPrice * 0.995).toFixed(2);
     }
 
     res.json({
       symbol,
+      interval_used: interval,
       latest_price: latestPrice,
       latest_rsi: latestRsi,
       signal,

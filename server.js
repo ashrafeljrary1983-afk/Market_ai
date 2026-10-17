@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const API_KEY =060ed556a5d54400a659fe1c0961715f
+const API_KEY = " 060ed556a5d54400a659fe1c0961715f";
 
 app.get('/', (req, res) => {
   res.json({ status: "Market AI Server is active and running successfully!" });
@@ -19,18 +19,17 @@ app.get('/api/analyze', async (req, res) => {
     const interval = req.query.interval || '1h';
 
     if (!API_KEY) {
-      return res.status(500).json({ error: "API Key is missing in environment variables." });
+      return res.status(500).json({ error: "API Key is missing." });
     }
 
-const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
-const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+    const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+    const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
 
     const [timeSeriesRes, rsiRes] = await Promise.all([
       axios.get(timeSeriesUrl),
       axios.get(rsiUrl)
     ]);
 
-    // التحقق من استجابة Twelve Data إذا كانت تحتوي على خطأ
     if (timeSeriesRes.data.status === "error" || rsiRes.data.status === "error") {
       return res.status(400).json({ 
         error: "Twelve Data Error", 

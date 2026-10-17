@@ -9,8 +9,6 @@ app.use(express.json());
 const PORT = process.env.PORT || 10000;
 const API_KEY = "4ebffc87d5304505bc5e1bfd55ada2db";
 
-
-
 app.get('/', (req, res) => {
   res.json({ status: "Market AI Server is active and running successfully!" });
 });
@@ -20,10 +18,6 @@ app.get('/api/analyze', async (req, res) => {
     const symbol = req.query.symbol || 'XAU/USD';
     const interval = req.query.interval || '1h';
 
-    if (!API_KEY) {
-      return res.status(500).json({ error: "API Key is missing." });
-    }
-
     const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
     const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
 
@@ -32,27 +26,30 @@ app.get('/api/analyze', async (req, res) => {
       axios.get(rsiUrl)
     ]);
 
-    if (timeSeriesRes.data.status === "error" || rsiRes.data.status === "error") {
-      return res.status(400).json({ 
-        error: "Twelve Data Error", 
-        details: timeSeriesRes.data.message || rsiRes.data.message 
-      });
-    }
-
     const prices = timeSeriesRes.data.values || [];
     const latestPrice = prices[0] ? parseFloat(prices[0].close) : 0;
     const rsiValues = rsiRes.data.values || [];
     const latestRsi = rsiValues[0] ? parseFloat(rsiValues[0].value) : 50;
 
     let signal = "NEUTRAL";
-    let summary = "السوق مستقر حالياً.";
+    let summary = "السوق مستقر حالياً، انتظر تأكيد الحركة.";
+    let entryPrice = latestPrice;
+    let takeProfit = 0;
+    let stopLoss = 0;
 
     if (latestRsi >= 70) {
       signal = "SELL / OVERBOUGHT";
-      summary = `مؤشر RSI وصل إلى ${latestRsi.toFixed(2)} وهي منطقة تشبع شرائي، احتمال هبوط تصحيحي.`;
+      summary = `مؤشر RSI مرتفع (${latestRsi.toFixed(2)}) منطقة تشبع شرائي، احتمال هبوط تصحيحي.`;
+      takeProfit = (latestPrice - 8).toFixed(2);
+      stopLoss = (latestPrice + 4).toFixed(2);
     } else if (latestRsi <= 30) {
       signal = "BUY / OVERSOLD";
-      summary = `مؤشر RSI وصل إلى ${latestRsi.toFixed(2)} وهي منطقة تشبع بيعي، احتمال ارتداد صعودياً.`;
+      summary = `مؤشر RSI منخفض (${latestRsi.toFixed(2)}) منطقة تشبع بيعي، احتمال ارتداد صعودياً.`;
+      takeProfit = (latestPrice + 8).toFixed(2);
+      stopLoss = (latestPrice - 4).toFixed(2);
+    } else {
+      takeProfit = (latestPrice + 5).toFixed(2);
+      stopLoss = (latestPrice - 5).toFixed(2);
     }
 
     res.json({
@@ -60,11 +57,16 @@ app.get('/api/analyze', async (req, res) => {
       latest_price: latestPrice,
       latest_rsi: latestRsi,
       signal,
+      trade_setup: {
+        action: signal,
+        entry: entryPrice,
+        take_profit: takeProfit,
+        stop_loss: stopLoss
+      },
       summary
     });
 
   } catch (error) {
-    console.error("Fetch error details:", error.message);
     res.status(500).json({ error: "Failed to fetch market data.", details: error.message });
   }
 });

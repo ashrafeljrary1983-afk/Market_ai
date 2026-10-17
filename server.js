@@ -16,10 +16,11 @@ app.get('/', (req, res) => {
 app.get('/api/analyze', async (req, res) => {
   try {
     const symbol = req.query.symbol ? req.query.symbol.toUpperCase() : 'BTC/USD';
-    const interval = req.query.interval || '15m'; // جعل الفريم الافتراضي أسرع (15 دقيقة) لزيادة الحساسية
+    const interval = req.query.interval || '5min';
 
     const priceUrl = `https://api.twelvedata.com/price?symbol=${symbol}&apikey=${API_KEY}`;
-    const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+    // استخدام فترات زمنية متوافقة تماماً مع API لمؤشر RSI
+    const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&timeperiod=14&apikey=${API_KEY}`;
 
     const [priceRes, rsiRes] = await Promise.all([
       axios.get(priceUrl),
@@ -27,15 +28,19 @@ app.get('/api/analyze', async (req, res) => {
     ]);
 
     const latestPrice = priceRes.data.price ? parseFloat(priceRes.data.price) : 0;
-    const rsiValues = rsiRes.data.values || [];
-    const latestRsi = rsiValues[0] ? parseFloat(rsiValues[0].value) : 50;
+    
+    // قراءة قيمة RSI بشكل دقيق وآمن
+    let latestRsi = 50;
+    if (rsiRes.data && rsiRes.data.values && rsiRes.data.values.length > 0) {
+      latestRsi = parseFloat(rsiRes.data.values[0].value);
+    }
 
     let signal = "NEUTRAL";
     let summary = "السوق مستقر حالياً، انتظر تأكيد الحركة.";
     let takeProfit = 0;
     let stopLoss = 0;
 
-    // زيادة الحساسية: تقليل مستويات التشبع لتلتقط إشارات أسرع (أعلى من 60 للبيع، وأقل من 40 للشراء)
+    // مستويات الحساسية المحدثة
     if (latestRsi >= 60) {
       signal = "SELL / OVERBOUGHT (Sensitive)";
       summary = `مؤشر RSI وصل إلى (${latestRsi.toFixed(2)}) - إشارة بيع مبكرة وسريعة.`;

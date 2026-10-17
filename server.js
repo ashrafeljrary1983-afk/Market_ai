@@ -15,7 +15,7 @@ app.get('/', (req, res) => {
 
 app.get('/api/analyze', async (req, res) => {
   try {
-    const symbol = req.query.symbol || 'XAU/USD';
+    const symbol = req.query.symbol || 'SOL/USD';
     const interval = req.query.interval || '1h';
 
     const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;

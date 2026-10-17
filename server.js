@@ -15,41 +15,39 @@ app.get('/', (req, res) => {
 
 app.get('/api/analyze', async (req, res) => {
   try {
-    const symbol = req.query.symbol || 'SOL/USD';
+    const symbol = req.query.symbol ? req.query.symbol.toUpperCase() : 'BTC/USD';
     const interval = req.query.interval || '1h';
 
-    const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+    const priceUrl = `https://api.twelvedata.com/price?symbol=${symbol}&apikey=${API_KEY}`;
     const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
 
-    const [timeSeriesRes, rsiRes] = await Promise.all([
-      axios.get(timeSeriesUrl),
+    const [priceRes, rsiRes] = await Promise.all([
+      axios.get(priceUrl),
       axios.get(rsiUrl)
     ]);
 
-    const prices = timeSeriesRes.data.values || [];
-    const latestPrice = prices[0] ? parseFloat(prices[0].close) : 0;
+    const latestPrice = priceRes.data.price ? parseFloat(priceRes.data.price) : 0;
     const rsiValues = rsiRes.data.values || [];
     const latestRsi = rsiValues[0] ? parseFloat(rsiValues[0].value) : 50;
 
     let signal = "NEUTRAL";
     let summary = "السوق مستقر حالياً، انتظر تأكيد الحركة.";
-    let entryPrice = latestPrice;
     let takeProfit = 0;
     let stopLoss = 0;
 
     if (latestRsi >= 70) {
       signal = "SELL / OVERBOUGHT";
       summary = `مؤشر RSI مرتفع (${latestRsi.toFixed(2)}) منطقة تشبع شرائي، احتمال هبوط تصحيحي.`;
-      takeProfit = (latestPrice - 8).toFixed(2);
-      stopLoss = (latestPrice + 4).toFixed(2);
+      takeProfit = (latestPrice * 0.99).toFixed(2);
+      stopLoss = (latestPrice * 1.005).toFixed(2);
     } else if (latestRsi <= 30) {
       signal = "BUY / OVERSOLD";
       summary = `مؤشر RSI منخفض (${latestRsi.toFixed(2)}) منطقة تشبع بيعي، احتمال ارتداد صعودياً.`;
-      takeProfit = (latestPrice + 8).toFixed(2);
-      stopLoss = (latestPrice - 4).toFixed(2);
+      takeProfit = (latestPrice * 1.01).toFixed(2);
+      stopLoss = (latestPrice * 0.995).toFixed(2);
     } else {
-      takeProfit = (latestPrice + 5).toFixed(2);
-      stopLoss = (latestPrice - 5).toFixed(2);
+      takeProfit = (latestPrice * 1.008).toFixed(2);
+      stopLoss = (latestPrice * 0.992).toFixed(2);
     }
 
     res.json({
@@ -59,7 +57,7 @@ app.get('/api/analyze', async (req, res) => {
       signal,
       trade_setup: {
         action: signal,
-        entry: entryPrice,
+        entry: latestPrice,
         take_profit: takeProfit,
         stop_loss: stopLoss
       },

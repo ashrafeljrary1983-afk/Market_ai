@@ -6,6 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// استخدام البورت الذي تفرضه منصة Render تلقائياً أو البورت 3000 للاختبار المحلي
 const PORT = process.env.PORT || 3000;
 const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY;
 
@@ -24,9 +25,7 @@ app.get('/api/analyze', async (req, res) => {
             return res.status(500).json({ error: "Missing Twelve Data API Key in environment variables." });
         }
 
-        // جلب أسعار السلسلة الزمنية
         const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&outputsize=20&apikey=${TWELVE_DATA_API_KEY}`;
-        // جلب قيمة مؤشر RSI لتحديد مناطق التشبع
         const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&time_period=14&apikey=${TWELVE_DATA_API_KEY}`;
 
         const [timeSeriesRes, rsiRes] = await Promise.all([
@@ -43,7 +42,6 @@ app.get('/api/analyze', async (req, res) => {
         const rsiValues = rsiRes.data.values || [];
         const latestRsi = rsiValues[0] ? parseFloat(rsiValues[0].value) : null;
 
-        // تحليل سريع استناداً لقراءة RSI ومقارنة السعر
         let signal = "NEUTRAL";
         let summary = "السوق في حالة حياد.";
 
@@ -77,6 +75,6 @@ app.get('/api/analyze', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
 });

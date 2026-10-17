@@ -9,7 +9,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 10000;
 const API_KEY = "4ebffc87d5304505bc5e1bfd55ada2db";
 
-// إعدادات بوت تيليجرام الخاص بك
+// إعدادات بوت تيليجرام
 const TELEGRAM_BOT_TOKEN = "8820098367:AAE1ZCWRXj4QQeR5I8KJYkEvtEmJeHEv5OE";
 const TELEGRAM_CHAT_ID = "7707212452";
 
@@ -29,7 +29,7 @@ async function sendTelegramAlert(message) {
 }
 
 app.get('/', (req, res) => {
-  res.json({ status: "Market AI Auto-Sniper Telegram Bot Server is active and running!" });
+  res.json({ status: "Market AI Multi-Asset Sniper Telegram Bot is active and running!" });
 });
 
 // دالة تحليل أصل معين وفحص فرصة القنص
@@ -56,6 +56,8 @@ async function analyzeAndCheckSymbol(symbol) {
     let ema21 = ema21Res.data?.values?.[0] ? parseFloat(ema21Res.data.values[0].value) : latestPrice;
     let ema200 = ema200Res.data?.values?.[0] ? parseFloat(ema200Res.data.values[0].value) : latestPrice;
 
+    if (!latestPrice) return null;
+
     const isBullishTrend = latestPrice > ema200 && ema9 > ema21;
     const isBearishTrend = latestPrice < ema200 && ema9 < ema21;
 
@@ -66,20 +68,18 @@ async function analyzeAndCheckSymbol(symbol) {
 
     if (isBullishTrend && latestRsi < 65 && latestRsi > 42) {
       signal = "SNIPER BUY 🎯";
-      takeProfit = (latestPrice * 1.015).toFixed(2);
-      stopLoss = (latestPrice * 0.995).toFixed(2);
-      summary = `🚀 *فرصة قنص شراء جديدة!*\n*العملة:* ${symbol}\n*السعر الحالي:* ${latestPrice}\n*هدف الربح:* ${takeProfit}\n*وقف الخسارة:* ${stopLoss}\n*مؤشر RSI:* ${latestRsi.toFixed(2)}`;
+      takeProfit = (latestPrice * 1.015).toFixed(4);
+      stopLoss = (latestPrice * 0.995).toFixed(4);
+      summary = `🚀 *إشارة قنص شراء جديدة!* (مناسبة للخيارات الثنائية)\n\n*الزوج/الأصل:* ${symbol}\n*السعر اللحظي:* ${latestPrice}\n*ملاحظة التداول:* صفقة صعود (CALL) لمدة 3-5 دقائق\n*مؤشر RSI:* ${latestRsi.toFixed(2)}`;
       
-      // إرسال التنبيه تلقائياً على تيليجرام
       await sendTelegramAlert(summary);
     } 
     else if (isBearishTrend && latestRsi > 35 && latestRsi < 58) {
       signal = "SNIPER SELL 🎯";
-      takeProfit = (latestPrice * 0.985).toFixed(2);
-      stopLoss = (latestPrice * 1.005).toFixed(2);
-      summary = `🔻 *فرصة قنص بيع جديدة!*\n*العملة:* ${symbol}\n*السعر الحالي:* ${latestPrice}\n*هدف الربح:* ${takeProfit}\n*وقف الخسارة:* ${stopLoss}\n*مؤشر RSI:* ${latestRsi.toFixed(2)}`;
+      takeProfit = (latestPrice * 0.985).toFixed(4);
+      stopLoss = (latestPrice * 1.005).toFixed(4);
+      summary = `🔻 *إشارة قنص بيع جديدة!* (مناسبة للخيارات الثنائية)\n\n*الزوج/الأصل:* ${symbol}\n*السعر اللحظي:* ${latestPrice}\n*ملاحظة التداول:* صفقة هبوط (PUT) لمدة 3-5 دقائق\n*مؤشر RSI:* ${latestRsi.toFixed(2)}`;
       
-      // إرسال التنبيه تلقائياً على تيليجرام
       await sendTelegramAlert(summary);
     }
 
@@ -89,17 +89,30 @@ async function analyzeAndCheckSymbol(symbol) {
   }
 }
 
-// فحص دوري تلقائي كل 15 دقيقة للأصول الثلاثة (الذهب، سولانا، الريبل)
-setInterval(async () => {
-  console.log("Running automated market sniper scan...");
-  await analyzeAndCheckSymbol('XAU/USD');
-  await analyzeAndCheckSymbol('SOL/USD');
-  await analyzeAndCheckSymbol('XRP/USD');
-}, 15 * 60 * 1000); // كل 15 دقيقة
+// قائمة الأزواج المراد مراقبتها
+const watchList = [
+  'XAU/USD', // الذهب
+  'EUR/USD', // اليورو مقابل الدولار
+  'GBP/USD', // الباوند مقابل الدولار
+  'USD/JPY', // الدولار مقابل الين
+  'AUD/USD', // الاسترالي مقابل الدولار
+  'USD/CHF', // الدولار مقابل الفرنك
+  'SOL/USD', // سولانا
+  'XRP/USD'  // الريبل
+];
 
-// نقطة نهاية يويتش لطلب الفحص اليدوي الفوري أيضاً إن رغبت
+// فحص دوري تلقائي لجميع الأزواج في القائمة كل 15 دقيقة
+setInterval(async () => {
+  console.log("Running multi-asset market sniper scan...");
+  for (const symbol of watchList) {
+    await analyzeAndCheckSymbol(symbol);
+    // فاصل زمني قصير بين كل فحص لتفادي تجاوز حد الطلبات في API
+    await new Promise(resolve => setTimeout(resolve, 1500));
+  }
+}, 15 * 60 * 1000);
+
 app.get('/api/analyze', async (req, res) => {
-  const symbol = req.query.symbol ? req.query.symbol.toUpperCase() : 'XAU/USD';
+  const symbol = req.query.symbol ? req.query.symbol.toUpperCase() : 'EUR/USD';
   const result = await analyzeAndCheckSymbol(symbol);
   res.json({ status: "Checked successfully", result });
 });

@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const API_KEY = process.env.TWELVE_DATA_API_KEY || process.env.TWELVE;
+const API_KEY = rnd_9tQhiCn94IbZMzinjsop0qeGuoRA
 
 
 app.get('/', (req, res) => {

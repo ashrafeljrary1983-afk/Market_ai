@@ -22,8 +22,8 @@ app.get('/api/analyze', async (req, res) => {
       return res.status(500).json({ error: "API Key is missing in environment variables." });
     }
 
-    const timeSeriesUrl = `https://api.twelvedatabase.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
-    const rsiUrl = `https://api.twelvedatabase.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+const timeSeriesUrl = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
+const rsiUrl = `https://api.twelvedata.com/rsi?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}`;
 
     const [timeSeriesRes, rsiRes] = await Promise.all([
       axios.get(timeSeriesUrl),

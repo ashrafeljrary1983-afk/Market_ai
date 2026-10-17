@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const API_KEY = " 060ed556a5d54400a659fe1c0961715f";
+const API_KEY = "ضع_مفتاحك_هنا";
 
 app.get('/', (req, res) => {
   res.json({ status: "Market AI Server is active and running successfully!" });

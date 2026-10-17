@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
-const API_KEY = "rnd_9tQhiCn94IbZMzinjsop0qeGuoRA";
+const API_KEY = "4ebffc87d5304505bc5e1bfd55ada2db";
 
 
 
